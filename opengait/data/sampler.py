@@ -4,7 +4,7 @@ import torch
 import torch.distributed as dist
 import torch.utils.data as tordata
 
-
+# this is called ...
 class TripletSampler(tordata.sampler.Sampler):
     def __init__(self, dataset, batch_size, batch_shuffle=False):
         self.dataset = dataset

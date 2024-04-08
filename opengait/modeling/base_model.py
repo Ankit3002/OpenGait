@@ -81,6 +81,11 @@ class MetaModel(metaclass=ABCMeta):
     def inputs_pretreament(self, inputs):
         """Transform the input data based on transform setting."""
         raise NotImplementedError
+    
+    @abstractmethod
+    def add_mask(image):
+        """Add masking to the image """
+        raise NotImplementedError    
 
     @abstractmethod
     def train_step(self, loss_num) -> bool:
@@ -179,6 +184,7 @@ class BaseModel(MetaModel, nn.Module):
         if is_list(backbone_cfg):
             Backbone = nn.ModuleList([self.get_backbone(cfg)
                                       for cfg in backbone_cfg])
+            
             return Backbone
         raise ValueError(
             "Error type for -Backbone-Cfg-, supported: (A list of) dict.")
@@ -189,6 +195,7 @@ class BaseModel(MetaModel, nn.Module):
 
     def init_parameters(self):
         for m in self.modules():
+            # comment is added over here ...
             if isinstance(m, (nn.Conv3d, nn.Conv2d, nn.Conv1d)):
                 nn.init.xavier_uniform_(m.weight.data)
                 if m.bias is not None:
@@ -203,6 +210,8 @@ class BaseModel(MetaModel, nn.Module):
                     nn.init.constant_(m.bias.data, 0.0)
 
     def get_loader(self, data_cfg, train=True):
+        # with data_cfg ---> return the loader object...
+
         sampler_cfg = self.cfgs['trainer_cfg']['sampler'] if train else self.cfgs['evaluator_cfg']['sampler']
         dataset = DataSet(data_cfg, train)
 
@@ -293,6 +302,14 @@ class BaseModel(MetaModel, nn.Module):
             if classname.find('BatchNorm') != -1:
                 module.eval()
 
+    # Define function to add 16x16 mask to an image
+    def add_mask(image):
+        mask = np.zeros_like(image)
+        x = np.random.randint(0, image.shape[0] - 16)
+        y = np.random.randint(0, image.shape[1] - 16)
+        mask[x:x+16, y:y+16] = 1
+        return np.where(mask == 1, 255, image)
+
     def inputs_pretreament(self, inputs):
         """Conduct transforms on input data.
 
@@ -302,6 +319,25 @@ class BaseModel(MetaModel, nn.Module):
             tuple: training data including inputs, labels, and some meta data.
         """
         seqs_batch, labs_batch, typs_batch, vies_batch, seqL_batch = inputs
+        val_seq = seqs_batch[0]
+        # Get indices of 4 images randomly
+        indices_to_mask = np.random.choice(len(val_seq), 4, replace=False)
+        
+        for idx in indices_to_mask:
+            val_seq[idx] = add_mask(val_seq[idx])
+        
+        seqs_batch = [val_seq]
+
+        # seqs_batch --> image in the numpy array ..
+        # labs_batch --> labels array like [ '001', '002' --> id]
+        # typs_batch --> types array like ['bg-01', 'nm-01' --> a walking style of a person]
+        # vies_batch --> views array like ['180' angle wala...]
+        # write the logic to add mask onto the image over here...
+
+        # algo ...
+        # take len ... then choose randomly 
+
+
         seq_trfs = self.trainer_trfs if self.training else self.evaluator_trfs
         if len(seqs_batch) != len(seq_trfs):
             raise ValueError(
@@ -325,7 +361,7 @@ class BaseModel(MetaModel, nn.Module):
         else:
             ipts = seqs
         del seqs
-        return ipts, labs, typs, vies, seqL
+        return ipts, labs, typs, vies, seqL   # inputs , labels , types, views, sequence length
 
     def train_step(self, loss_sum) -> bool:
         """Conduct loss_sum.backward(), self.optimizer.step() and self.scheduler.step().
@@ -402,13 +438,15 @@ class BaseModel(MetaModel, nn.Module):
     @ staticmethod
     def run_train(model):
         """Accept the instance object(model) here, and then run the train loop."""
+        # rand counter if else mask ...
         for inputs in model.train_loader:
+            # masking ...
             ipts = model.inputs_pretreament(inputs)
             with autocast(enabled=model.engine_cfg['enable_float16']):
-                retval = model(ipts)
+                retval = model(ipts) # here we are calling the forward method finally..
                 training_feat, visual_summary = retval['training_feat'], retval['visual_summary']
                 del retval
-            loss_sum, loss_info = model.loss_aggregator(training_feat)
+            loss_sum, loss_info = model.loss_aggregator(training_feat) # here loss nikal liya ...
             ok = model.train_step(loss_sum)
             if not ok:
                 continue

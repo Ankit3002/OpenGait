@@ -29,7 +29,8 @@ def imgs2pickle(img_groups: Tuple, output_path: Path, img_size: int = 64, verbos
     for img_file in sorted(img_paths):
         if verbose:
             logging.debug(f'Reading sid {sinfo[0]}, seq {sinfo[1]}, view {sinfo[2]} from {img_file}')
-
+        
+        # from here important code is started...
         img = cv2.imread(str(img_file), cv2.IMREAD_GRAYSCALE)
         
         if dataset == 'GREW':
@@ -42,6 +43,8 @@ def imgs2pickle(img_groups: Tuple, output_path: Path, img_size: int = 64, verbos
             logging.warning(f'{img_file} has no data.')
             continue
 
+
+        # logic...
         # Get the upper and lower points
         y_sum = img.sum(axis=1)
         y_top = (y_sum != 0).argmax(axis=0)
@@ -105,7 +108,7 @@ def pretreat(input_path: Path, output_path: Path, img_size: int = 64, workers: i
         workers (int, optional): Number of thread workers. Defaults to 4.
         verbose (bool, optional): Display debug info. Defaults to False.
     """
-    img_groups = defaultdict(list)
+    img_groups = defaultdict(list) # initializing the list ... of image groups...
     logging.info(f'Listing {input_path}')
     total_files = 0
     for img_path in input_path.rglob('*.png'):
@@ -113,9 +116,13 @@ def pretreat(input_path: Path, output_path: Path, img_size: int = 64, workers: i
             continue
         if verbose:
             logging.debug(f'Adding {img_path}')
-        *_, sid, seq, view, _ = img_path.as_posix().split('/')
+
+        # from here main code is start....
+        *_, sid, seq, view, _ = img_path.as_posix().split('/') # sid --> subject id, sequence , view ...
         img_groups[(sid, seq, view)].append(img_path)
         total_files += 1
+
+    # calcuation of the number of images are done...
 
     logging.info(f'Total files listed: {total_files}')
 
@@ -225,6 +232,9 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='Display debug info.')
     parser.add_argument('-p', '--pose', default=False, action='store_true', help='Processing pose.')
     args = parser.parse_args()
+
+    # --dataset --> string storing the name of the dataset...
+    # done with the adding the command line arguements...
 
     logging.basicConfig(level=logging.INFO, filename=args.log_file, filemode='w', format='[%(asctime)s - %(levelname)s]: %(message)s')
     

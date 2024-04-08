@@ -69,6 +69,7 @@ class GaitGL(BaseModel):
 
     def __init__(self, *args, **kargs):
         super(GaitGL, self).__init__(*args, **kargs)
+        print("Ankit_log after constructor  line over here")
 
     def build_network(self, model_cfg):
         in_c = model_cfg['channels']
