@@ -1,5 +1,5 @@
 # GaitBERT: Gait Recognition by Predicting Masked Frame
-
+### Go ahead and take a look at the video about the project --> https://youtu.be/t5_73aBQqmw
 ## Overview
 
 GaitBERT is a deep learning model designed for gait recognition by predicting masked frames within video sequences. This approach utilizes a U-Net architecture combined with frame embedding, positional encoding, and a combination of regression and triplet losses to accurately reconstruct and identify gait patterns.
